@@ -1,0 +1,144 @@
+secrets:
+  aws_credentials:
+    file: "$AWS_SHARED_CREDENTIALS_FILE"
+
+services:
+  proxy:
+    image: traefik:v3.0
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ssl:/zerossl
+    secrets:
+      - aws_credentials
+    environment:
+      AWS_PROFILE: "$AWS_PROFILE"
+      AWS_SHARED_CREDENTIALS_FILE: "/run/secrets/aws_credentials"
+      AWS_REGION: "$AWS_REGION"
+      AWS_HOSTED_ZONE_ID: "$AWS_HOSTED_ZONE_ID"
+    networks:
+      default:
+      web:
+        ipv4_address: 192.168.100.250
+      auth-network:
+    dns:
+      - "1.1.1.1"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.zerossl.acme.dnschallenge=true"
+      - "--certificatesresolvers.zerossl.acme.dnschallenge.provider=route53"
+      - "--certificatesresolvers.zerossl.acme.caserver=https://acme.zerossl.com/v2/DV90"
+      - "--certificatesresolvers.zerossl.acme.email=$CA_EMAIL"
+      - "--certificatesresolvers.zerossl.acme.storage=/zerossl/acme.json"
+      - "--certificatesresolvers.zerossl.acme.eab.kid=$EAB_KID"
+      - "--certificatesresolvers.zerossl.acme.eab.hmacEncoded=$EAB_HMAC_KEY"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.proxy.rule=Host(`proxy.local.{ドメイン}`)"
+      - "traefik.http.routers.proxy.tls=true"
+      - "traefik.http.routers.proxy.tls.certresolver=zerossl"
+      - "traefik.http.services.proxy.loadbalancer.server.port=8080"
+      - "traefik.http.routers.proxy.tls.domains[0].main=local.{ドメイン}"
+      - "traefik.http.routers.proxy.tls.domains[0].sans=*.local.{ドメイン}"
+  mysql8:
+    image: mysql/mysql-server:8.0.23
+    ports:
+      - '${MYSQL8_PORT:-3306}:3306'
+    volumes:
+      - mysql8:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_USER: '${DB_USERNAME:-super}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    networks:
+      dev-container:
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  redis6:
+    image: redis:6-alpine
+    volumes:
+      - redis6:/data
+    ports:
+      - "6379:6379"
+    networks:
+      dev-container:
+
+  mail:
+    image: axllent/mailpit
+    volumes:
+      - mail:/mailpitstorage
+    environment:
+      TZ: Asia/Tokyo
+      MP_DATA_FILE: /mailpitstorage/mailpit.db
+    ports:
+      - '${FORWARD_MAIL_SMTP_PORT:-1025}:1025'
+    networks:
+      default:
+      dev-container:
+      auth-network:
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dev-container_default"
+      - "traefik.http.routers.mail.rule=Host(`mail.local.{ドメイン}`)"
+      - "traefik.http.routers.mail.tls=true"
+      - "traefik.http.routers.mail.tls.certresolver=zerossl"
+      - "traefik.http.services.mail.loadbalancer.server.port=8025"
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    entrypoint: bash
+    command: >
+      -c "
+      mkdir -p /data/.minio.sys/buckets;
+      cp -r /policies/* /data/.minio.sys/;
+      cp -r /export/* /data/;
+      /usr/bin/docker-entrypoint.sh minio server /data --console-address :9001;
+      "
+    volumes:
+      - ./docker/minio/data:/data
+      - ./docker/minio/export:/export
+      - ./docker/minio/config:/root/.minio
+      - ./docker/minio/policies:/policies
+    ports:
+      - "9000:9000"
+    expose:
+      - 9001
+    networks:
+      default:
+      dev-container:
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dev-container_default"
+      - "traefik.http.routers.minio.rule=Host(`minio.local.{ドメイン}`)"
+      - "traefik.http.routers.minio.tls=true"
+      - "traefik.http.routers.minio.tls.certresolver=zerossl"
+      - "traefik.http.services.minio.loadbalancer.server.port=9001"
+
+networks:
+  web:
+    external: true
+  dev-container:
+    external: true
+
+volumes:
+  mysql8:
+  redis6:
+  ssl:
+  mail:
