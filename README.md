@@ -21,13 +21,13 @@
 
 #### proxy dashboard
 
-https://proxy.local.{ドメイン}
+https://proxy.local.challtech.dev
 
 #### mail
 
-https://mail.local.{ドメイン}
+https://mail.local.challtech.dev
 
 #### minio
 
-https://minio.local.{ドメイン}
+https://minio.local.challtech.dev
 

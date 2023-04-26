@@ -22,6 +22,7 @@ services:
       default:
       web:
         ipv4_address: 192.168.100.250
+    restart: always
     dns:
       - "1.1.1.1"
     command:
@@ -43,12 +44,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=web"
-      - "traefik.http.routers.proxy.rule=Host(`proxy.local.{ドメイン}`)"
+      - "traefik.http.routers.proxy.rule=Host(`proxy.local.challtech.dev`)"
       - "traefik.http.routers.proxy.tls=true"
       - "traefik.http.routers.proxy.tls.certresolver=zerossl"
       - "traefik.http.services.proxy.loadbalancer.server.port=8080"
-      - "traefik.http.routers.proxy.tls.domains[0].main=local.{ドメイン}"
-      - "traefik.http.routers.proxy.tls.domains[0].sans=*.local.{ドメイン}"
+      - "traefik.http.routers.proxy.tls.domains[0].main=local.challtech.dev"
+      - "traefik.http.routers.proxy.tls.domains[0].sans=*.local.challtech.dev"
   mysql8:
     image: mysql/mysql-server:8.0.23
     ports:
@@ -63,6 +64,7 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
     networks:
       dev-container:
+    restart: always
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
   redis6:
@@ -73,6 +75,7 @@ services:
       - "6379:6379"
     networks:
       dev-container:
+    restart: always
 
   mail:
     image: axllent/mailpit
@@ -86,11 +89,11 @@ services:
     networks:
       default:
       dev-container:
-    restart: unless-stopped
+    restart: always
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dev-container_default"
-      - "traefik.http.routers.mail.rule=Host(`mail.local.{ドメイン}`)"
+      - "traefik.http.routers.mail.rule=Host(`mail.local.challtech.dev`)"
       - "traefik.http.routers.mail.tls=true"
       - "traefik.http.routers.mail.tls.certresolver=zerossl"
       - "traefik.http.services.mail.loadbalancer.server.port=8025"
@@ -124,7 +127,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dev-container_default"
-      - "traefik.http.routers.minio.rule=Host(`minio.local.{ドメイン}`)"
+      - "traefik.http.routers.minio.rule=Host(`minio.local.challtech.dev`)"
       - "traefik.http.routers.minio.tls=true"
       - "traefik.http.routers.minio.tls.certresolver=zerossl"
       - "traefik.http.services.minio.loadbalancer.server.port=9001"
