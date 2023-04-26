@@ -22,7 +22,6 @@ services:
       default:
       web:
         ipv4_address: 192.168.100.250
-      auth-network:
     dns:
       - "1.1.1.1"
     command:
@@ -87,7 +86,6 @@ services:
     networks:
       default:
       dev-container:
-      auth-network:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
