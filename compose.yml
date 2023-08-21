@@ -134,6 +134,18 @@ services:
       - "traefik.http.routers.minio.tls.certresolver=zerossl"
       - "traefik.http.services.minio.loadbalancer.server.port=9001"
 
+  dnsmasq:
+    # image: andyshinn/dnsmasq:2.78
+    image: dpvduncan/dnsmasq:latest-arm64v8
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      default:
+    volumes:
+      - ./docker/dnsmasq/config/dnsmasq.conf:/config/dnsmasq.conf
 networks:
   web:
     external: true
