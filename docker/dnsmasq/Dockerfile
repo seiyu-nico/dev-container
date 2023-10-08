@@ -18,10 +18,14 @@ RUN mkdir -p /rootfs/bin && \
       echo "nobody:*:10000:10000:::" > /rootfs/etc/passwd
 RUN setcap CAP_NET_ADMIN,CAP_NET_RAW,CAP_NET_BIND_SERVICE+ep /rootfs/bin/dnsmasq
 
+COPY ./docker/dnsmasq/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 FROM scratch
 
 COPY --from=build --chown=10000:10000 /rootfs /
-
+COPY --from=build --chown=10000:10000 /entrypoint.sh /entrypoint.sh
 USER 10000:10000
-ENTRYPOINT ["/bin/dnsmasq"]
-CMD ["--no-daemon", "--log-queries", "--keep-in-foreground"]
+
+# 初期化スクリプトを実行
+ENTRYPOINT ["/entrypoint.sh"]

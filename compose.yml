@@ -33,7 +33,6 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.websocket.address=:6001"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--certificatesresolvers.zerossl.acme.dnschallenge=true"
@@ -145,8 +144,11 @@ services:
       - NET_ADMIN
     networks:
       default:
-    volumes:
-      - ./docker/dnsmasq/config/dnsmasq.conf:/etc/dnsmasq.conf
+    # volumes:
+    #   - ./docker/dnsmasq/config/dnsmasq.conf.template:/etc/dnsmasq.conf.template
+    environment:
+      HOST_IP: ${HOST_IP}
+
 networks:
   web:
     external: true
