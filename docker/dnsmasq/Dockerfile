@@ -21,7 +21,7 @@ RUN setcap CAP_NET_ADMIN,CAP_NET_RAW,CAP_NET_BIND_SERVICE+ep /rootfs/bin/dnsmasq
 COPY ./docker/dnsmasq/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-FROM scratch
+FROM busybox:latest
 
 COPY --from=build --chown=10000:10000 /rootfs /
 COPY --from=build --chown=10000:10000 /entrypoint.sh /entrypoint.sh
