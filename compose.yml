@@ -67,7 +67,7 @@ services:
     networks:
       dev-container:
     restart: always
-    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password --sql_mode="NO_ENGINE_SUBSTITUTION"
 
   redis6:
     image: redis:6-alpine
@@ -133,20 +133,19 @@ services:
       - "traefik.http.routers.minio.tls=true"
       - "traefik.http.routers.minio.tls.certresolver=zerossl"
       - "traefik.http.services.minio.loadbalancer.server.port=9001"
-
-  dnsmasq:
-    build:
-      context: .
-      dockerfile: ./docker/dnsmasq/Dockerfile
+  dns:
+    image: coredns/coredns:1.11.1
+    volumes:
+      - '${CORE_FILE:-./docker/dns/Corefile}:/etc/coredns/Corefile'
     ports:
-      - "53:53/tcp"
+      - "53:53"
       - "53:53/udp"
-    cap_add:
-      - NET_ADMIN
     networks:
       default:
-    volumes:
-      - ./docker/dnsmasq/config/dnsmasq.conf:/etc/dnsmasq.conf
+    profiles:
+      - dns
+    command: -conf /etc/coredns/Corefile
+    
 networks:
   web:
     external: true
