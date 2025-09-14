@@ -1,0 +1,157 @@
+secrets:
+  gcp_service_account:
+    file: "${GCP_SERVICE_ACCOUNT_FILE}"
+
+services:
+  proxy:
+    image: traefik:v3.0
+    ports:
+      - "80:80"
+      - "443:443"
+      - "6001:6001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ssl:/zerossl
+    secrets:
+      - gcp_service_account
+    environment:
+      GCE_SERVICE_ACCOUNT_FILE: "/run/secrets/gcp_service_account"
+      GCE_PROJECT: "${GCP_PROJECT_ID}"
+    networks:
+      default:
+      web:
+        ipv4_address: 192.168.100.250
+    restart: always
+    dns:
+      - "1.1.1.1"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websocket.address=:6001"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--certificatesresolvers.zerossl.acme.dnschallenge=true"
+      - "--certificatesresolvers.zerossl.acme.dnschallenge.provider=gcloud"
+      - "--certificatesresolvers.zerossl.acme.caserver=https://acme.zerossl.com/v2/DV90"
+      - "--certificatesresolvers.zerossl.acme.email=${CA_EMAIL}"
+      - "--certificatesresolvers.zerossl.acme.storage=/zerossl/acme.json"
+      - "--certificatesresolvers.zerossl.acme.eab.kid=${EAB_KID}"
+      - "--certificatesresolvers.zerossl.acme.eab.hmacEncoded=${EAB_HMAC_KEY}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      - "traefik.http.routers.proxy.rule=Host(`proxy.local.challtech.dev`)"
+      - "traefik.http.routers.proxy.tls=true"
+      - "traefik.http.routers.proxy.tls.certresolver=zerossl"
+      - "traefik.http.services.proxy.loadbalancer.server.port=8080"
+      - "traefik.http.routers.proxy.tls.domains[0].main=local.challtech.dev"
+      - "traefik.http.routers.proxy.tls.domains[0].sans=*.local.challtech.dev"
+  mysql8:
+    image: mysql/mysql-server:8.0.23
+    ports:
+      - '${MYSQL8_PORT:-3306}:3306'
+    volumes:
+      - mysql8:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_USER: '${DB_USERNAME:-super}'
+      MYSQL_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    networks:
+      dev-container:
+    restart: always
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password --sql_mode="NO_ENGINE_SUBSTITUTION"
+
+  redis6:
+    image: redis:6-alpine
+    volumes:
+      - redis6:/data
+    ports:
+      - "6379:6379"
+    networks:
+      dev-container:
+    restart: always
+
+  mail:
+    image: axllent/mailpit
+    volumes:
+      - mail:/mailpitstorage
+    environment:
+      TZ: Asia/Tokyo
+      MP_DATA_FILE: /mailpitstorage/mailpit.db
+    ports:
+      - '${FORWARD_MAIL_SMTP_PORT:-1025}:1025'
+    networks:
+      default:
+      dev-container:
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dev-container_default"
+      - "traefik.http.routers.mail.rule=Host(`mail.local.challtech.dev`)"
+      - "traefik.http.routers.mail.tls=true"
+      - "traefik.http.routers.mail.tls.certresolver=zerossl"
+      - "traefik.http.services.mail.loadbalancer.server.port=8025"
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+    entrypoint: bash
+    command: >
+      -c "
+      mkdir -p /data/.minio.sys/buckets;
+      cp -r /policies/* /data/.minio.sys/;
+      cp -r /export/* /data/;
+      /usr/bin/docker-entrypoint.sh minio server /data --console-address :9001;
+      "
+    volumes:
+      - ./docker/minio/data:/data
+      - ./docker/minio/export:/export
+      - ./docker/minio/config:/root/.minio
+      - ./docker/minio/policies:/policies
+    ports:
+      - "9000:9000"
+    expose:
+      - 9001
+    networks:
+      default:
+      dev-container:
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dev-container_default"
+      - "traefik.http.routers.minio.rule=Host(`minio.local.challtech.dev`)"
+      - "traefik.http.routers.minio.tls=true"
+      - "traefik.http.routers.minio.tls.certresolver=zerossl"
+      - "traefik.http.services.minio.loadbalancer.server.port=9001"
+  dns:
+    image: coredns/coredns:1.11.1
+    volumes:
+      - '${CORE_FILE:-./docker/dns/Corefile}:/etc/coredns/Corefile'
+    ports:
+      - "53:53"
+      - "53:53/udp"
+    networks:
+      default:
+    profiles:
+      - dns
+    command: -conf /etc/coredns/Corefile
+    
+networks:
+  web:
+    external: true
+  dev-container:
+    external: true
+
+volumes:
+  mysql8:
+  redis6:
+  ssl:
+  mail:
