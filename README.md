@@ -24,13 +24,13 @@
 #### AWS Route53 を使用する場合
 
 ```sh
-docker compose -f compose.aws.yml up -d
+docker compose -f compose.aws.yaml up -d
 ```
 
 #### Google Cloud DNS を使用する場合
 
 ```sh
-docker compose -f compose.gcloud.yml up -d
+docker compose -f compose.gcloud.yaml up -d
 ```
 
 ### URL
