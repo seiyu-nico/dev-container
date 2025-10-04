@@ -53,14 +53,14 @@ services:
   mysql8:
     image: mysql/mysql-server:8.0.23
     ports:
-      - '${MYSQL8_PORT:-3306}:3306'
+      - "${MYSQL8_PORT:-3306}:3306"
     volumes:
       - mysql8:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD:-password}"
       MYSQL_ROOT_HOST: "%"
-      MYSQL_USER: '${DB_USERNAME:-super}'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-password}'
+      MYSQL_USER: "${DB_USERNAME:-super}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-password}"
       MYSQL_ALLOW_EMPTY_PASSWORD: 1
     networks:
       dev-container:
@@ -85,7 +85,7 @@ services:
       TZ: Asia/Tokyo
       MP_DATA_FILE: /mailpitstorage/mailpit.db
     ports:
-      - '${FORWARD_MAIL_SMTP_PORT:-1025}:1025'
+      - "${FORWARD_MAIL_SMTP_PORT:-1025}:1025"
     networks:
       default:
       dev-container:
@@ -134,7 +134,7 @@ services:
   dns:
     image: coredns/coredns:1.11.1
     volumes:
-      - '${CORE_FILE:-./docker/dns/Corefile}:/etc/coredns/Corefile'
+      - "${CORE_FILE:-./docker/dns/Corefile}:/etc/coredns/Corefile"
     ports:
       - "53:53"
       - "53:53/udp"
@@ -143,7 +143,7 @@ services:
     profiles:
       - dns
     command: -conf /etc/coredns/Corefile
-    
+
 networks:
   web:
     external: true
