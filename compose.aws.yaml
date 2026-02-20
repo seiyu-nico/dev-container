@@ -59,7 +59,7 @@ services:
     ports:
       - '${MYSQL8_PORT:-3306}:3306'
     volumes:
-      - mysql8:/var/lib/mysql
+      - ./docker/mysql/data:/var/lib/mysql
     environment:
       MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-password}'
       MYSQL_ROOT_HOST: "%"
@@ -155,7 +155,6 @@ networks:
     external: true
 
 volumes:
-  mysql8:
   redis6:
   ssl:
   mail:

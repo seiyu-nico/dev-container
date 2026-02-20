@@ -1,3 +1,4 @@
 .env
 !/docker/dns/Corefile
 /docker/dns/*
+/docker/mysql/data/
