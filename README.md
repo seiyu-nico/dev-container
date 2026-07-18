@@ -12,6 +12,11 @@
 1. `.env.gcloud.example`をコピーして`.env`を作成する
 2. `.env`の項目を全部埋める（GCP 関連の環境変数を設定）
 
+### Cloudflare を使用する場合
+
+1. `.env.cloudflare.example`をコピーして`.env`を作成する
+2. `.env`の項目を全部埋める（`CF_DNS_API_TOKEN` を設定）
+
 ### ネットワーク作成
 
 ```sh
@@ -31,6 +36,12 @@ docker compose -f compose.aws.yaml up -d
 
 ```sh
 docker compose -f compose.gcloud.yaml up -d
+```
+
+#### Cloudflare を使用する場合
+
+```sh
+docker compose -f compose.cloudflare.yaml up -d
 ```
 
 ### URL
